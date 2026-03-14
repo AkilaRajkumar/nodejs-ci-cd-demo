@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "yourdockerhubusername/nodejs-demo"
+        DOCKER_IMAGE = "akilaraamana/nodejs-demo"
         DOCKER_CREDENTIALS = "dockerhub-token"
     }
 
@@ -11,26 +11,26 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                url: 'https://github.com/YOUR_USERNAME/nodejs-ci-cd-demo.git'
+                url: 'https://github.com/AkilaRajkumar/nodejs-ci-cd-demo.git'
             }
         }
 
         stage('Build') {
             steps {
-                sh 'npm install'
+                bat 'npm install'
             }
         }
 
         stage('Test') {
             steps {
-                sh 'npm test'
+                bat 'npm test'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonarqube-server') {
-                    sh 'sonar-scanner'
+                    bat 'sonar-scanner'
                 }
             }
         }
@@ -45,7 +45,7 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE .'
+                bat 'docker build -t $DOCKER_IMAGE .'
             }
         }
 
@@ -56,15 +56,15 @@ pipeline {
                     usernameVariable: 'USERNAME',
                     passwordVariable: 'PASSWORD')]) {
 
-                    sh 'docker login -u $USERNAME -p $PASSWORD'
-                    sh 'docker push $DOCKER_IMAGE'
+                    bat 'docker login -u $USERNAME -p $PASSWORD'
+                    bat 'docker push $DOCKER_IMAGE'
                 }
             }
         }
 
         stage('Deploy Container') {
             steps {
-                sh '''
+                bat '''
                 docker stop nodejs-demo || true
                 docker rm nodejs-demo || true
                 docker run -d -p 3000:3000 --name nodejs-demo $DOCKER_IMAGE
