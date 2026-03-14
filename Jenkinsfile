@@ -27,13 +27,17 @@ pipeline {
             }
         }
 
+        
         stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('sonarqube-server') {
-                    bat 'sonar-scanner'
-                }
+    steps {
+        script {
+            def scannerHome = tool 'sonar-scanner'
+            withSonarQubeEnv('sonarqube-server') {
+                bat "${scannerHome}\\bin\\sonar-scanner"
             }
         }
+    }
+}
 
         stage('Quality Gate') {
             steps {
