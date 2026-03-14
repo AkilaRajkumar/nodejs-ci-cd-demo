@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "akilaraamana/nodejs-demo"
+        DOCKER_IMAGE = "akilaraamana/nodejs-demo:${BUILD_NUMBER}"
         DOCKER_CREDENTIALS = "dockerhub-token"
     }
 
@@ -27,17 +27,16 @@ pipeline {
             }
         }
 
-        
         stage('SonarQube Analysis') {
-    steps {
-        script {
-            def scannerHome = tool 'sonar-scanner'
-            withSonarQubeEnv('sonarqube-server') {
-                bat "${scannerHome}\\bin\\sonar-scanner"
+            steps {
+                script {
+                    def scannerHome = tool 'sonar-scanner'
+                    withSonarQubeEnv('sonarqube-server') {
+                        bat "${scannerHome}\\bin\\sonar-scanner"
+                    }
+                }
             }
         }
-    }
-}
 
         stage('Quality Gate') {
             steps {
@@ -70,8 +69,8 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 bat '''
-                docker stop nodejs-demo
-                docker rm nodejs-demo
+                docker stop nodejs-demo || exit 0
+                docker rm nodejs-demo || exit 0
                 docker run -d -p 3000:3000 --name nodejs-demo %DOCKER_IMAGE%
                 '''
             }
