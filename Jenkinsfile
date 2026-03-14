@@ -45,7 +45,7 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                bat 'docker build -t $DOCKER_IMAGE .'
+                bat 'docker build -t %DOCKER_IMAGE% .'
             }
         }
 
@@ -54,10 +54,11 @@ pipeline {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-token',
                     usernameVariable: 'USERNAME',
-                    passwordVariable: 'PASSWORD')]) {
+                    passwordVariable: 'PASSWORD'
+                )]) {
 
-                    bat 'docker login -u $USERNAME -p $PASSWORD'
-                    bat 'docker push $DOCKER_IMAGE'
+                    bat 'docker login -u %USERNAME% -p %PASSWORD%'
+                    bat 'docker push %DOCKER_IMAGE%'
                 }
             }
         }
@@ -65,9 +66,9 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 bat '''
-                docker stop nodejs-demo || true
-                docker rm nodejs-demo || true
-                docker run -d -p 3000:3000 --name nodejs-demo $DOCKER_IMAGE
+                docker stop nodejs-demo
+                docker rm nodejs-demo
+                docker run -d -p 3000:3000 --name nodejs-demo %DOCKER_IMAGE%
                 '''
             }
         }
