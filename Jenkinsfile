@@ -77,7 +77,7 @@ pipeline {
                     docker pull $DOCKER_IMAGE &&
                     docker stop nodejs-demo || true &&
                     docker rm nodejs-demo || true &&
-                    docker run -d -p 3000:3000 --name nodejs-demo $DOCKER_IMAGE
+                    docker run -d -p 3001:3000 --name nodejs-demo $DOCKER_IMAGE
                 "
                 '''
             }
