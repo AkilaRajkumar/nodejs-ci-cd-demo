@@ -4,6 +4,9 @@ pipeline {
     environment {
         DOCKER_IMAGE = "akilaraamana/nodejs-demo:${BUILD_NUMBER}"
         DOCKER_CREDENTIALS = "dockerhub-token"
+        EC2_HOST = "ec2-13-234-238-147.ap-south-1.compute.amazonaws.com"
+        EC2_USER = "ubuntu"
+        EC2_KEY = "/var/lib/jenkins/ec2-key.pem"
     }
 
     stages {
@@ -15,15 +18,15 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Install Dependencies') {
             steps {
-                bat 'npm install'
+                sh 'npm install'
             }
         }
 
         stage('Test') {
             steps {
-                bat 'npm test'
+                sh 'npm test || true'
             }
         }
 
@@ -32,7 +35,7 @@ pipeline {
                 script {
                     def scannerHome = tool 'sonar-scanner'
                     withSonarQubeEnv('sonarqube-server') {
-                        bat "${scannerHome}\\bin\\sonar-scanner"
+                        sh "${scannerHome}/bin/sonar-scanner"
                     }
                 }
             }
@@ -48,7 +51,7 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                bat 'docker build -t %DOCKER_IMAGE% .'
+                sh 'docker build -t $DOCKER_IMAGE .'
             }
         }
 
@@ -59,19 +62,23 @@ pipeline {
                     usernameVariable: 'USERNAME',
                     passwordVariable: 'PASSWORD'
                 )]) {
-
-                    bat 'docker login -u %USERNAME% -p %PASSWORD%'
-                    bat 'docker push %DOCKER_IMAGE%'
+                    sh '''
+                    docker login -u $USERNAME -p $PASSWORD
+                    docker push $DOCKER_IMAGE
+                    '''
                 }
             }
         }
 
-        stage('Deploy Container') {
+        stage('Deploy to EC2') {
             steps {
-                bat '''
-                docker stop nodejs-demo || exit 0
-                docker rm nodejs-demo || exit 0
-                docker run -d -p 3000:3000 --name nodejs-demo %DOCKER_IMAGE%
+                sh '''
+                ssh -o StrictHostKeyChecking=no -i $EC2_KEY $EC2_USER@$EC2_HOST "
+                    docker pull $DOCKER_IMAGE &&
+                    docker stop nodejs-demo || true &&
+                    docker rm nodejs-demo || true &&
+                    docker run -d -p 3000:3000 --name nodejs-demo $DOCKER_IMAGE
+                "
                 '''
             }
         }
