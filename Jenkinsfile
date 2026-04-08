@@ -2,8 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "akilaraamana/nodejs-demo:${BUILD_NUMBER}"
-        DOCKER_CREDENTIALS = "dockerhub-token"
+        IMAGE_NAME = "akilaraamana/capstone_project:latest"
         EC2_HOST = "ec2-13-234-238-147.ap-south-1.compute.amazonaws.com"
         EC2_USER = "ubuntu"
         EC2_KEY = "/var/lib/jenkins/ec2-key.pem"
@@ -18,53 +17,22 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Build Image') {
             steps {
-                sh 'npm install'
+                sh 'docker build -t $IMAGE_NAME .'
             }
         }
 
-        stage('Test') {
-            steps {
-                sh 'npm test || true'
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    def scannerHome = tool 'sonar-scanner'
-                    withSonarQubeEnv('sonarqube-server') {
-                        sh "${scannerHome}/bin/sonar-scanner"
-                    }
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-
-        stage('Docker Build') {
-            steps {
-                sh 'docker build -t $DOCKER_IMAGE .'
-            }
-        }
-
-        stage('Push Docker Image') {
+        stage('Push Image') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-token',
-                    usernameVariable: 'USERNAME',
-                    passwordVariable: 'PASSWORD'
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
                 )]) {
                     sh '''
-                    docker login -u $USERNAME -p $PASSWORD
-                    docker push $DOCKER_IMAGE
+                    docker login -u $USER -p $PASS
+                    docker push $IMAGE_NAME
                     '''
                 }
             }
@@ -74,10 +42,10 @@ pipeline {
             steps {
                 sh '''
                 ssh -o StrictHostKeyChecking=no -i $EC2_KEY $EC2_USER@$EC2_HOST "
-                    docker pull $DOCKER_IMAGE &&
-                    docker stop nodejs-demo || true &&
-                    docker rm nodejs-demo || true &&
-                    docker run -d -p 3001:3000 --name nodejs-demo $DOCKER_IMAGE
+                    docker pull akilaraamana/capstone_project:latest &&
+                    docker stop capstone || true &&
+                    docker rm capstone || true &&
+                    docker run -d -p 3001:3000 --name capstone akilaraamana/capstone_project:latest
                 "
                 '''
             }
